@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ポモドーロタイマー</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f7;
+            color: #333;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .container {
+            background-color: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .timer-display {
+            font-size: 3.5rem;
+            text-align: center;
+            margin: 15px 0;
+            font-weight: bold;
+            color: #333;
+        }
+        .status {
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-bottom: 20px;
+            color: #555;
+        }
+        .progress-container {
+            height: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #007aff;
+            border-radius: 5px;
+            transition: width 1s linear;
+        }
+        .settings-container {
+            margin-top: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        button {
+            flex: 1;
+            background-color: #007aff;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        button:active {
+            background-color: #0056b3;
+        }
+        .reset-btn {
+            background-color: #ff3b30;
+        }
+        .presets {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .preset-btn {
+            flex: 1;
+            background-color: #e0e0e0;
+            color: #333;
+            border: none;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        .preset-btn:active {
+            background-color: #ccc;
+        }
+        .cycles-info {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 1rem;
+            color: #555;
+        }
+        .save-preset {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .save-preset input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .save-preset button {
+            background-color: #34c759;
+        }
+        .preset-list {
+            margin-top: 15px;
+        }
+        .preset-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f2f2f2;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .preset-item-name {
+            flex: 1;
+            font-weight: 500;
+        }
+        .preset-item-values {
+            color: #666;
+            margin-right: 10px;
+        }
+        .preset-item button {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            background-color: #ff3b30;
+        }
+    </style>
+</head>
+<body>
+    <h1>ポモドーロタイマー</h1>
+    
+    <div class="container">
+        <div class="timer-display" id="timer">25:00</div>
+        <div class="status" id="status">作業時間</div>
+        <div class="progress-container">
+            <div class="progress-bar" id="progress"></div>
+        </div>
+        <div class="cycles-info">
+            <span id="cycle-count">0</span> / <span id="total-cycles">4</span> サイクル
+        </div>
+        <div class="controls">
+            <button id="start-btn">スタート</button>
+            <button id="pause-btn" disabled>一時停止</button>
+            <button id="reset-btn" class="reset-btn">リセット</button>
+        </div>
+    </div>
+
+    <div class="container settings-container">
+        <h2>設定</h2>
+        <div class="presets">
+            <button class="preset-btn" data-work="25" data-break="5" data-cycles="4">25-5 x4</button>
+            <button class="preset-btn" data-work="50" data-break="10" data-cycles="2">50-10 x2</button>
+            <button class="preset-btn" data-work="45" data-break="15" data-cycles="3">45-15 x3</button>
+        </div>
+        <div class="form-group">
+            <label for="work-time">作業時間 (分)</label>
+            <input type="number" id="work-time" min="1" max="120" value="25">
+        </div>
+        <div class="form-group">
+            <label for="break-time">休憩時間 (分)</label>
+            <input type="number" id="break-time" min="1" max="60" value="5">
+        </div>
+        <div class="form-group">
+            <label for="cycles">繰り返し回数</label>
+            <input type="number" id="cycles" min="1" max="10" value="4">
+        </div>
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="notification-toggle" checked>
+                通知を有効にする
+            </label>
+        </div>
+        <div class="save-preset">
+            <input type="text" id="preset-name" placeholder="プリセット名">
+            <button id="save-preset-btn">保存</button>
+        </div>
+        <div class="preset-list" id="preset-list">
+            <!-- プリセットがここに表示されます -->
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 要素の取得
+            const timerDisplay = document.getElementById('timer');
+            const statusDisplay = document.getElementById('status');
+            const progressBar = document.getElementById('progress');
+            const cycleCountDisplay = document.getElementById('cycle-count');
+            const totalCyclesDisplay = document.getElementById('total-cycles');
+            
+            const startBtn = document.getElementById('start-btn');
+            const pauseBtn = document.getElementById('pause-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            
+            const workTimeInput = document.getElementById('work-time');
+            const breakTimeInput = document.getElementById('break-time');
+            const cyclesInput = document.getElementById('cycles');
+            const notificationToggle = document.getElementById('notification-toggle');
+            
+            const presetButtons = document.querySelectorAll('.preset-btn');
+            const savePresetBtn = document.getElementById('save-preset-btn');
+            const presetNameInput = document.getElementById('preset-name');
+            const presetList = document.getElementById('preset-list');
+            
+            // タイマー変数
+            let timer;
+            let timeLeft = 0;
+            let totalTime = 0;
+            let isRunning = false;
+            let isPaused = false;
+            let isWorkTime = true;
+            let currentCycle = 0;
+            let totalCycles = 4;
+            
+            // 通知許可の確認
+            if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                Notification.requestPermission();
+            }
+            
+            // タイマーの初期化
+            function initializeTimer() {
+                const workTime = parseInt(workTimeInput.value) || 25;
+                const cycles = parseInt(cyclesInput.value) || 4;
+                
+                timeLeft = workTime * 60;
+                totalTime = timeLeft;
+                isWorkTime = true;
+                currentCycle = 0;
+                totalCycles = cycles;
+                
+                updateDisplay();
+                totalCyclesDisplay.textContent = totalCycles;
+                cycleCountDisplay.textContent = currentCycle;
+                progressBar.style.width = '0%';
+            }
+            
+            // 表示の更新
+            function updateDisplay() {
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                
+                timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                statusDisplay.textContent = isWorkTime ? '作業時間' : '休憩時間';
+                progressBar.style.width = `${((totalTime - timeLeft) / totalTime) * 100}%`;
+            }
+            
+            // タイマーの開始
+            function startTimer() {
+                if (isRunning && !isPaused) return;
+                
+                if (!isRunning) {
+                    initializeTimer();
+                    isRunning = true;
+                }
+                
+                isPaused = false;
+                startBtn.disabled = true;
+                pauseBtn.disabled = false;
+                
+                timer = setInterval(() => {
+                    timeLeft--;
+                    updateDisplay();
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(timer);
+                        
+                        // 通知の送信
+                        if (notificationToggle.checked) {
+                            sendNotification();
+                        }
+                        
+                        // フェーズの切り替え
+                        if (isWorkTime) {
+                            currentCycle++;
+                            cycleCountDisplay.textContent = currentCycle;
+                            
+                            // サイクル完了確認
+                            if (currentCycle >= totalCycles) {
+                                completeTimer();
+                                return;
+                            }
+                            
+                            // 休憩時間へ
+                            isWorkTime = false;
+                            timeLeft = (parseInt(breakTimeInput.value) || 5) * 60;
+                            totalTime = timeLeft;
+                            statusDisplay.textContent = '休憩時間';
+                        } else {
+                            // 作業時間へ
+                            isWorkTime = true;
+                            timeLeft = (parseInt(workTimeInput.value) || 25) * 60;
+                            totalTime = timeLeft;
+                            statusDisplay.textContent = '作業時間';
+                        }
+                        
+                        updateDisplay();
+                        startTimer();
+                    }
+                }, 1000);
+            }
+            
+            // タイマーの一時停止
+            function pauseTimer() {
+                clearInterval(timer);
+                isPaused = true;
+                startBtn.disabled = false;
+                pauseBtn.disabled = true;
+            }
+            
+            // タイマーのリセット
+            function resetTimer() {
+                clearInterval(timer);
+                isRunning = false;
+                isPaused = false;
+                startBtn.disabled = false;
+                pauseBtn.disabled = true;
+                initializeTimer();
+            }
+            
+            // タイマー完了
+            function completeTimer() {
+                clearInterval(timer);
+                isRunning = false;
+                isPaused = false;
+                startBtn.disabled = false;
+                pauseBtn.disabled = true;
+                statusDisplay.textContent = '完了！';
+                
+                if (notificationToggle.checked) {
+                    new Notification('ポモドーロタイマー', {
+                        body: 'すべてのサイクルが完了しました！',
+                        icon: 'https://via.placeholder.com/128'
+                    });
+                }
+            }
+            
+            // 通知の送信
+            function sendNotification() {
+                if (Notification.permission === 'granted') {
+                    const message = isWorkTime ? 
+                        '休憩時間です！' : 
+                        '作業時間です！';
+                    
+                    new Notification('ポモドーロタイマー', {
+                        body: message,
+                        icon: 'https://via.placeholder.com/128'
+                    });
+                }
+            }
+            
+            // メモリ内プリセットを管理（localStorage の代わり）
+            let memoryPresets = {};
+            
+            // プリセットの保存
+            function savePreset() {
+                const name = presetNameInput.value.trim();
+                if (!name) return;
+                
+                const workTime = parseInt(workTimeInput.value) || 25;
+                const breakTime = parseInt(breakTimeInput.value) || 5;
+                const cycles = parseInt(cyclesInput.value) || 4;
+                
+                memoryPresets[name] = { workTime, breakTime, cycles };
+                
+                presetNameInput.value = '';
+                renderPresets();
+            }
+            
+            // プリセットの取得
+            function getPresets() {
+                return memoryPresets;
+            }
+            
+            // プリセットの読み込み
+            function loadPreset(name) {
+                const preset = memoryPresets[name];
+                
+                if (preset) {
+                    workTimeInput.value = preset.workTime;
+                    breakTimeInput.value = preset.breakTime;
+                    cyclesInput.value = preset.cycles;
+                    resetTimer();
+                }
+            }
+            
+            // プリセットの削除
+            function deletePreset(name) {
+                delete memoryPresets[name];
+                renderPresets();
+            }
+            
+            // プリセットのレンダリング
+            function renderPresets() {
+                const presets = getPresets();
+                presetList.innerHTML = '';
+                
+                for (const name in presets) {
+                    const preset = presets[name];
+                    const presetItem = document.createElement('div');
+                    presetItem.className = 'preset-item';
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'preset-item-name';
+                    nameSpan.textContent = name;
+                    
+                    const valuesSpan = document.createElement('span');
+                    valuesSpan.className = 'preset-item-values';
+                    valuesSpan.textContent = `${preset.workTime}分-${preset.breakTime}分 x${preset.cycles}`;
+                    
+                    const loadBtn = document.createElement('button');
+                    loadBtn.textContent = '読込';
+                    loadBtn.addEventListener('click', () => loadPreset(name));
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = '削除';
+                    deleteBtn.addEventListener('click', () => deletePreset(name));
+                    
+                    presetItem.appendChild(nameSpan);
+                    presetItem.appendChild(valuesSpan);
+                    presetItem.appendChild(loadBtn);
+                    presetItem.appendChild(deleteBtn);
+                    
+                    presetList.appendChild(presetItem);
+                }
+            }
+            
+            // イベントリスナーの設定
+            startBtn.addEventListener('click', startTimer);
+            pauseBtn.addEventListener('click', pauseTimer);
+            resetBtn.addEventListener('click', resetTimer);
+            savePresetBtn.addEventListener('click', savePreset);
+            
+            presetButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    workTimeInput.value = this.dataset.work;
+                    breakTimeInput.value = this.dataset.break;
+                    cyclesInput.value = this.dataset.cycles;
+                    resetTimer();
+                });
+            });
+            
+            // アプリ初期化
+            initializeTimer();
+            renderPresets();
+        });
+    </script>
+</body>
+</html>
