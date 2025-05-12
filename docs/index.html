@@ -89,6 +89,9 @@
             font-weight: 500;
             cursor: pointer;
             transition: background-color 0.2s;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
         }
         button:disabled {
             background-color: #ccc;
@@ -297,6 +300,11 @@
                 startBtn.disabled = true;
                 pauseBtn.disabled = false;
                 
+                // 既存のタイマーをクリア
+                if (timer) {
+                    clearInterval(timer);
+                }
+                
                 timer = setInterval(() => {
                     timeLeft--;
                     updateDisplay();
@@ -324,16 +332,15 @@
                             isWorkTime = false;
                             timeLeft = (parseInt(breakTimeInput.value) || 5) * 60;
                             totalTime = timeLeft;
-                            statusDisplay.textContent = '休憩時間';
                         } else {
                             // 作業時間へ
                             isWorkTime = true;
                             timeLeft = (parseInt(workTimeInput.value) || 25) * 60;
                             totalTime = timeLeft;
-                            statusDisplay.textContent = '作業時間';
                         }
                         
                         updateDisplay();
+                        // 自動的に次のタイマーを開始（ここがキーポイント）
                         startTimer();
                     }
                 }, 1000);
@@ -464,14 +471,37 @@
                 }
             }
             
+            // タッチデバイス対応のイベントリスナー
+            function addEventListeners(element, eventTypes, callback) {
+                eventTypes.forEach(type => {
+                    element.addEventListener(type, callback);
+                });
+            }
+            
             // イベントリスナーの設定
-            startBtn.addEventListener('click', startTimer);
-            pauseBtn.addEventListener('click', pauseTimer);
-            resetBtn.addEventListener('click', resetTimer);
-            savePresetBtn.addEventListener('click', savePreset);
+            addEventListeners(startBtn, ['click', 'touchstart'], function(e) {
+                e.preventDefault(); // デフォルトの動作を防止
+                startTimer();
+            });
+            
+            addEventListeners(pauseBtn, ['click', 'touchstart'], function(e) {
+                e.preventDefault();
+                pauseTimer();
+            });
+            
+            addEventListeners(resetBtn, ['click', 'touchstart'], function(e) {
+                e.preventDefault();
+                resetTimer();
+            });
+            
+            addEventListeners(savePresetBtn, ['click', 'touchstart'], function(e) {
+                e.preventDefault();
+                savePreset();
+            });
             
             presetButtons.forEach(button => {
-                button.addEventListener('click', function() {
+                addEventListeners(button, ['click', 'touchstart'], function(e) {
+                    e.preventDefault();
                     workTimeInput.value = this.dataset.work;
                     breakTimeInput.value = this.dataset.break;
                     cyclesInput.value = this.dataset.cycles;
