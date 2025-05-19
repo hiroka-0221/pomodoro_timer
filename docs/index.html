@@ -34,6 +34,7 @@
             margin: 15px 0;
             font-weight: bold;
             color: #333;
+            transition: color 0.3s ease;
         }
         .status {
             text-align: center;
@@ -41,6 +42,39 @@
             font-weight: 500;
             margin-bottom: 20px;
             color: #555;
+            padding: 10px 20px;
+            border-radius: 25px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            display: inline-block;
+            margin-left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        /* 作業時間のスタイル */
+        .work-mode .timer-display {
+            color: #007aff;
+        }
+        .work-mode .status {
+            background-color: #e3f2fd;
+            border-color: #007aff;
+            color: #007aff;
+        }
+        .work-mode .progress-bar {
+            background-color: #007aff;
+        }
+        
+        /* 休憩時間のスタイル */
+        .break-mode .timer-display {
+            color: #34c759;
+        }
+        .break-mode .status {
+            background-color: #e8f5e9;
+            border-color: #34c759;
+            color: #34c759;
+        }
+        .break-mode .progress-bar {
+            background-color: #34c759;
         }
         .progress-container {
             height: 10px;
@@ -54,7 +88,7 @@
             width: 0%;
             background-color: #007aff;
             border-radius: 5px;
-            transition: width 1s linear;
+            transition: width 1s linear, background-color 0.3s ease;
         }
         .settings-container {
             margin-top: 20px;
@@ -227,7 +261,7 @@
 <body>
     <h1>ポモドーロタイマー</h1>
     
-    <div class="container">
+    <div class="container work-mode" id="timer-container">
         <div class="timer-display" id="timer">25:00</div>
         <div class="status" id="status">作業時間</div>
         <div class="progress-container">
@@ -280,6 +314,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // 要素の取得
+            const timerContainer = document.getElementById('timer-container');
             const timerDisplay = document.getElementById('timer');
             const statusDisplay = document.getElementById('status');
             const progressBar = document.getElementById('progress');
@@ -344,6 +379,13 @@
                 
                 timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
                 statusDisplay.textContent = isWorkTime ? '作業時間' : '休憩時間';
+                
+                // UI テーマの切り替え
+                if (isWorkTime) {
+                    timerContainer.className = 'container work-mode';
+                } else {
+                    timerContainer.className = 'container break-mode';
+                }
                 
                 // プログレスバーの更新
                 if (totalTime > 0) {
@@ -417,6 +459,11 @@
                 timeLeft = (parseInt(breakTimeInput.value) || 5) * 60;
                 totalTime = timeLeft;
                 updateDisplay();
+                
+                // 通知の送信（フェーズ切り替え時）
+                if (notificationToggle.checked) {
+                    sendPhaseChangeNotification('休憩時間が始まりました！');
+                }
             }
             
             // 作業時間への切り替え
@@ -425,6 +472,11 @@
                 timeLeft = (parseInt(workTimeInput.value) || 25) * 60;
                 totalTime = timeLeft;
                 updateDisplay();
+                
+                // 通知の送信（フェーズ切り替え時）
+                if (notificationToggle.checked) {
+                    sendPhaseChangeNotification('作業時間が始まりました！');
+                }
             }
             
             // タイマーの一時停止
@@ -474,6 +526,20 @@
                         '休憩時間です！' : 
                         '作業時間です！';
                     
+                    try {
+                        new Notification('ポモドーロタイマー', {
+                            body: message,
+                            icon: '/api/placeholder/128/128'
+                        });
+                    } catch (error) {
+                        console.log('通知エラー:', error);
+                    }
+                }
+            }
+            
+            // フェーズ切り替え時の通知
+            function sendPhaseChangeNotification(message) {
+                if ('Notification' in window && Notification.permission === 'granted') {
                     try {
                         new Notification('ポモドーロタイマー', {
                             body: message,
