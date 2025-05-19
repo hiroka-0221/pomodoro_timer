@@ -13,6 +13,8 @@
             color: #333;
             max-width: 500px;
             margin: 0 auto;
+            /* タッチスクロールを改善 */
+            -webkit-overflow-scrolling: touch;
         }
         h1 {
             text-align: center;
@@ -72,6 +74,12 @@
             border: 1px solid #ccc;
             border-radius: 8px;
             font-size: 16px;
+            box-sizing: border-box;
+            /* iOSで数字入力を改善 */
+            -webkit-appearance: none;
+        }
+        input[type="checkbox"] {
+            margin-right: 8px;
         }
         .controls {
             display: flex;
@@ -89,25 +97,43 @@
             font-weight: 500;
             cursor: pointer;
             transition: background-color 0.2s;
+            /* iOSタッチの改善 */
+            -webkit-tap-highlight-color: transparent;
             -webkit-touch-callout: none;
             -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent;
+            user-select: none;
             touch-action: manipulation;
+            /* ボタンのタッチ領域を確保 */
+            min-height: 44px;
+            position: relative;
+            outline: none;
         }
         button:disabled {
             background-color: #ccc;
             cursor: not-allowed;
+            opacity: 0.6;
         }
-        button:active {
+        button:hover:not(:disabled) {
             background-color: #0056b3;
+        }
+        button:active:not(:disabled) {
+            background-color: #004085;
+            transform: scale(0.98);
         }
         .reset-btn {
             background-color: #ff3b30;
+        }
+        .reset-btn:hover:not(:disabled) {
+            background-color: #d70015;
+        }
+        .reset-btn:active:not(:disabled) {
+            background-color: #b8000f;
         }
         .presets {
             display: flex;
             gap: 10px;
             margin-bottom: 15px;
+            flex-wrap: wrap;
         }
         .preset-btn {
             flex: 1;
@@ -118,12 +144,21 @@
             border-radius: 8px;
             font-size: 0.9rem;
             cursor: pointer;
+            min-height: 44px;
+            /* iOSタッチの改善 */
+            -webkit-tap-highlight-color: transparent;
             -webkit-touch-callout: none;
             -webkit-user-select: none;
+            user-select: none;
             touch-action: manipulation;
+            outline: none;
+        }
+        .preset-btn:hover {
+            background-color: #d0d0d0;
         }
         .preset-btn:active {
-            background-color: #ccc;
+            background-color: #c0c0c0;
+            transform: scale(0.98);
         }
         .cycles-info {
             text-align: center;
@@ -142,9 +177,19 @@
             border: 1px solid #ccc;
             border-radius: 8px;
             font-size: 16px;
+            box-sizing: border-box;
+            -webkit-appearance: none;
         }
         .save-preset button {
             background-color: #34c759;
+            white-space: nowrap;
+            min-width: 80px;
+        }
+        .save-preset button:hover:not(:disabled) {
+            background-color: #30a64a;
+        }
+        .save-preset button:active:not(:disabled) {
+            background-color: #28a745;
         }
         .preset-list {
             margin-top: 15px;
@@ -157,6 +202,7 @@
             padding: 10px;
             border-radius: 8px;
             margin-bottom: 8px;
+            gap: 10px;
         }
         .preset-item-name {
             flex: 1;
@@ -164,12 +210,17 @@
         }
         .preset-item-values {
             color: #666;
-            margin-right: 10px;
+            font-size: 0.9rem;
         }
         .preset-item button {
             padding: 5px 10px;
             font-size: 0.8rem;
             background-color: #ff3b30;
+            flex: none;
+            min-width: 50px;
+        }
+        .preset-item button:first-of-type {
+            background-color: #007aff;
         }
     </style>
 </head>
@@ -259,8 +310,13 @@
             let currentCycle = 0;
             let totalCycles = 4;
             
+            // デバイス検出
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isChrome = /Chrome/.test(navigator.userAgent);
+            const isChromeIOS = isIOS && isChrome;
+            
             // 通知許可の確認
-            if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+            if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
                 Notification.requestPermission();
             }
             
@@ -289,7 +345,7 @@
                 timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
                 statusDisplay.textContent = isWorkTime ? '作業時間' : '休憩時間';
                 
-                // プログレスバーの更新を修正
+                // プログレスバーの更新
                 if (totalTime > 0) {
                     progressBar.style.width = `${((totalTime - timeLeft) / totalTime) * 100}%`;
                 }
@@ -399,17 +455,21 @@
                 statusDisplay.textContent = '完了！';
                 progressBar.style.width = '100%';
                 
-                if (notificationToggle.checked) {
-                    new Notification('ポモドーロタイマー', {
-                        body: 'すべてのサイクルが完了しました！',
-                        icon: 'https://via.placeholder.com/128'
-                    });
+                if (notificationToggle.checked && 'Notification' in window) {
+                    try {
+                        new Notification('ポモドーロタイマー', {
+                            body: 'すべてのサイクルが完了しました！',
+                            icon: '/api/placeholder/128/128'
+                        });
+                    } catch (error) {
+                        console.log('通知エラー:', error);
+                    }
                 }
             }
             
             // 通知の送信
             function sendNotification() {
-                if (Notification.permission === 'granted') {
+                if ('Notification' in window && Notification.permission === 'granted') {
                     const message = isWorkTime ? 
                         '休憩時間です！' : 
                         '作業時間です！';
@@ -417,7 +477,7 @@
                     try {
                         new Notification('ポモドーロタイマー', {
                             body: message,
-                            icon: 'https://via.placeholder.com/128'
+                            icon: '/api/placeholder/128/128'
                         });
                     } catch (error) {
                         console.log('通知エラー:', error);
@@ -480,11 +540,11 @@
                     
                     const loadBtn = document.createElement('button');
                     loadBtn.textContent = '読込';
-                    handleTouchClick(loadBtn, () => loadPreset(name));
+                    addTouchHandler(loadBtn, () => loadPreset(name));
                     
                     const deleteBtn = document.createElement('button');
                     deleteBtn.textContent = '削除';
-                    handleTouchClick(deleteBtn, () => deletePreset(name));
+                    addTouchHandler(deleteBtn, () => deletePreset(name));
                     
                     presetItem.appendChild(nameSpan);
                     presetItem.appendChild(valuesSpan);
@@ -495,53 +555,77 @@
                 }
             }
             
-            // iPhoneのChrome対応 - より確実な方法
-            function handleTouchClick(element, callback) {
-                let touchStarted = false;
-                let touchMoved = false;
-                
-                // タッチスタート
-                element.addEventListener('touchstart', function(e) {
-                    touchStarted = true;
-                    touchMoved = false;
-                    e.preventDefault();
-                }, { passive: false });
-                
-                // タッチムーブ
-                element.addEventListener('touchmove', function(e) {
-                    touchMoved = true;
-                    e.preventDefault();
-                }, { passive: false });
-                
-                // タッチエンド
-                element.addEventListener('touchend', function(e) {
-                    if (touchStarted && !touchMoved) {
+            // iOSサポートを改善したイベントハンドラー
+            function addTouchHandler(element, callback) {
+                // Chrome for iOSの特別対応
+                if (isChromeIOS) {
+                    // touchstartとtouchendで確実に処理
+                    let touchStarted = false;
+                    
+                    element.addEventListener('touchstart', function(e) {
+                        touchStarted = true;
+                        e.preventDefault();
+                    }, { passive: false });
+                    
+                    element.addEventListener('touchend', function(e) {
+                        if (touchStarted) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            // 小さな遅延を入れて確実に実行
+                            setTimeout(() => callback(e), 10);
+                        }
+                        touchStarted = false;
+                    }, { passive: false });
+                    
+                    // クリックイベントも念のため追加（ただし重複実行を防ぐ）
+                    element.addEventListener('click', function(e) {
+                        if (!touchStarted) {
+                            e.preventDefault();
+                            callback(e);
+                        }
+                    });
+                } else {
+                    // 通常のイベント処理
+                    element.addEventListener('click', function(e) {
                         e.preventDefault();
                         callback(e);
+                    });
+                    
+                    // タッチデバイス用の追加処理
+                    if ('ontouchstart' in window) {
+                        let touchStarted = false;
+                        let touchMoved = false;
+                        
+                        element.addEventListener('touchstart', function(e) {
+                            touchStarted = true;
+                            touchMoved = false;
+                        }, { passive: true });
+                        
+                        element.addEventListener('touchmove', function(e) {
+                            touchMoved = true;
+                        }, { passive: true });
+                        
+                        element.addEventListener('touchend', function(e) {
+                            if (touchStarted && !touchMoved) {
+                                e.preventDefault();
+                                callback(e);
+                            }
+                            touchStarted = false;
+                            touchMoved = false;
+                        }, { passive: false });
                     }
-                    touchStarted = false;
-                    touchMoved = false;
-                }, { passive: false });
-                
-                // クリック（非タッチデバイス用）
-                element.addEventListener('click', function(e) {
-                    // タッチデバイスでないか、タッチイベントが発生していない場合のみ処理
-                    if (!('ontouchstart' in window) || !touchStarted) {
-                        e.preventDefault();
-                        callback(e);
-                    }
-                });
+                }
             }
             
             // イベントリスナーの設定
-            handleTouchClick(startBtn, () => startTimer());
-            handleTouchClick(pauseBtn, () => pauseTimer());
-            handleTouchClick(resetBtn, () => resetTimer());
-            handleTouchClick(savePresetBtn, () => savePreset());
+            addTouchHandler(startBtn, startTimer);
+            addTouchHandler(pauseBtn, pauseTimer);
+            addTouchHandler(resetBtn, resetTimer);
+            addTouchHandler(savePresetBtn, savePreset);
             
             // プリセットボタン
             presetButtons.forEach(button => {
-                handleTouchClick(button, function() {
+                addTouchHandler(button, function() {
                     workTimeInput.value = button.dataset.work;
                     breakTimeInput.value = button.dataset.break;
                     cyclesInput.value = button.dataset.cycles;
