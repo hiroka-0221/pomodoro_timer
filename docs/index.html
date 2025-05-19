@@ -91,6 +91,7 @@
             transition: background-color 0.2s;
             -webkit-touch-callout: none;
             -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
         }
         button:disabled {
@@ -479,17 +480,11 @@
                     
                     const loadBtn = document.createElement('button');
                     loadBtn.textContent = '読込';
-                    loadBtn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        loadPreset(name);
-                    });
+                    handleTouchClick(loadBtn, () => loadPreset(name));
                     
                     const deleteBtn = document.createElement('button');
                     deleteBtn.textContent = '削除';
-                    deleteBtn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        deletePreset(name);
-                    });
+                    handleTouchClick(deleteBtn, () => deletePreset(name));
                     
                     presetItem.appendChild(nameSpan);
                     presetItem.appendChild(valuesSpan);
@@ -500,90 +495,57 @@
                 }
             }
             
-            // イベントリスナーの設定（iPhoneのChrome対応）
-            // タッチデバイス判定
-            let isTouch = false;
-            
-            // スタートボタン
-            startBtn.addEventListener('touchstart', function(e) {
-                isTouch = true;
-                e.preventDefault();
-                startTimer();
-            }, { passive: false });
-            
-            startBtn.addEventListener('click', function(e) {
-                if (!isTouch) {
+            // iPhoneのChrome対応 - より確実な方法
+            function handleTouchClick(element, callback) {
+                let touchStarted = false;
+                let touchMoved = false;
+                
+                // タッチスタート
+                element.addEventListener('touchstart', function(e) {
+                    touchStarted = true;
+                    touchMoved = false;
                     e.preventDefault();
-                    startTimer();
-                }
-                isTouch = false;
-            });
-            
-            // 一時停止ボタン
-            pauseBtn.addEventListener('touchstart', function(e) {
-                isTouch = true;
-                e.preventDefault();
-                pauseTimer();
-            }, { passive: false });
-            
-            pauseBtn.addEventListener('click', function(e) {
-                if (!isTouch) {
+                }, { passive: false });
+                
+                // タッチムーブ
+                element.addEventListener('touchmove', function(e) {
+                    touchMoved = true;
                     e.preventDefault();
-                    pauseTimer();
-                }
-                isTouch = false;
-            });
+                }, { passive: false });
+                
+                // タッチエンド
+                element.addEventListener('touchend', function(e) {
+                    if (touchStarted && !touchMoved) {
+                        e.preventDefault();
+                        callback(e);
+                    }
+                    touchStarted = false;
+                    touchMoved = false;
+                }, { passive: false });
+                
+                // クリック（非タッチデバイス用）
+                element.addEventListener('click', function(e) {
+                    // タッチデバイスでないか、タッチイベントが発生していない場合のみ処理
+                    if (!('ontouchstart' in window) || !touchStarted) {
+                        e.preventDefault();
+                        callback(e);
+                    }
+                });
+            }
             
-            // リセットボタン
-            resetBtn.addEventListener('touchstart', function(e) {
-                isTouch = true;
-                e.preventDefault();
-                resetTimer();
-            }, { passive: false });
-            
-            resetBtn.addEventListener('click', function(e) {
-                if (!isTouch) {
-                    e.preventDefault();
-                    resetTimer();
-                }
-                isTouch = false;
-            });
-            
-            // プリセット保存ボタン
-            savePresetBtn.addEventListener('touchstart', function(e) {
-                isTouch = true;
-                e.preventDefault();
-                savePreset();
-            }, { passive: false });
-            
-            savePresetBtn.addEventListener('click', function(e) {
-                if (!isTouch) {
-                    e.preventDefault();
-                    savePreset();
-                }
-                isTouch = false;
-            });
+            // イベントリスナーの設定
+            handleTouchClick(startBtn, () => startTimer());
+            handleTouchClick(pauseBtn, () => pauseTimer());
+            handleTouchClick(resetBtn, () => resetTimer());
+            handleTouchClick(savePresetBtn, () => savePreset());
             
             // プリセットボタン
             presetButtons.forEach(button => {
-                button.addEventListener('touchstart', function(e) {
-                    isTouch = true;
-                    e.preventDefault();
-                    workTimeInput.value = this.dataset.work;
-                    breakTimeInput.value = this.dataset.break;
-                    cyclesInput.value = this.dataset.cycles;
+                handleTouchClick(button, function() {
+                    workTimeInput.value = button.dataset.work;
+                    breakTimeInput.value = button.dataset.break;
+                    cyclesInput.value = button.dataset.cycles;
                     resetTimer();
-                }, { passive: false });
-                
-                button.addEventListener('click', function(e) {
-                    if (!isTouch) {
-                        e.preventDefault();
-                        workTimeInput.value = this.dataset.work;
-                        breakTimeInput.value = this.dataset.break;
-                        cyclesInput.value = this.dataset.cycles;
-                        resetTimer();
-                    }
-                    isTouch = false;
                 });
             });
             
