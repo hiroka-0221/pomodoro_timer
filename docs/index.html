@@ -89,9 +89,9 @@
             font-weight: 500;
             cursor: pointer;
             transition: background-color 0.2s;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
         }
         button:disabled {
             background-color: #ccc;
@@ -117,6 +117,9 @@
             border-radius: 8px;
             font-size: 0.9rem;
             cursor: pointer;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
         }
         .preset-btn:active {
             background-color: #ccc;
@@ -284,7 +287,11 @@
                 
                 timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
                 statusDisplay.textContent = isWorkTime ? '作業時間' : '休憩時間';
-                progressBar.style.width = `${((totalTime - timeLeft) / totalTime) * 100}%`;
+                
+                // プログレスバーの更新を修正
+                if (totalTime > 0) {
+                    progressBar.style.width = `${((totalTime - timeLeft) / totalTime) * 100}%`;
+                }
             }
             
             // タイマーの開始
@@ -300,50 +307,67 @@
                 startBtn.disabled = true;
                 pauseBtn.disabled = false;
                 
-                // 既存のタイマーをクリア
-                if (timer) {
-                    clearInterval(timer);
-                }
-                
+                runTimer();
+            }
+            
+            // タイマーの実行
+            function runTimer() {
                 timer = setInterval(() => {
                     timeLeft--;
                     updateDisplay();
                     
                     if (timeLeft <= 0) {
                         clearInterval(timer);
-                        
-                        // 通知の送信
-                        if (notificationToggle.checked) {
-                            sendNotification();
-                        }
-                        
-                        // フェーズの切り替え
-                        if (isWorkTime) {
-                            currentCycle++;
-                            cycleCountDisplay.textContent = currentCycle;
-                            
-                            // サイクル完了確認
-                            if (currentCycle >= totalCycles) {
-                                completeTimer();
-                                return;
-                            }
-                            
-                            // 休憩時間へ
-                            isWorkTime = false;
-                            timeLeft = (parseInt(breakTimeInput.value) || 5) * 60;
-                            totalTime = timeLeft;
-                        } else {
-                            // 作業時間へ
-                            isWorkTime = true;
-                            timeLeft = (parseInt(workTimeInput.value) || 25) * 60;
-                            totalTime = timeLeft;
-                        }
-                        
-                        updateDisplay();
-                        // 自動的に次のタイマーを開始（ここがキーポイント）
-                        startTimer();
+                        handleTimerEnd();
                     }
                 }, 1000);
+            }
+            
+            // タイマー終了時の処理
+            function handleTimerEnd() {
+                // 通知の送信
+                if (notificationToggle.checked) {
+                    sendNotification();
+                }
+                
+                // フェーズの切り替え
+                if (isWorkTime) {
+                    currentCycle++;
+                    cycleCountDisplay.textContent = currentCycle;
+                    
+                    // サイクル完了確認
+                    if (currentCycle >= totalCycles) {
+                        completeTimer();
+                        return;
+                    }
+                    
+                    // 休憩時間へ
+                    switchToBreak();
+                } else {
+                    // 作業時間へ
+                    switchToWork();
+                }
+                
+                // 次のタイマーを自動開始
+                setTimeout(() => {
+                    runTimer();
+                }, 500);
+            }
+            
+            // 休憩時間への切り替え
+            function switchToBreak() {
+                isWorkTime = false;
+                timeLeft = (parseInt(breakTimeInput.value) || 5) * 60;
+                totalTime = timeLeft;
+                updateDisplay();
+            }
+            
+            // 作業時間への切り替え
+            function switchToWork() {
+                isWorkTime = true;
+                timeLeft = (parseInt(workTimeInput.value) || 25) * 60;
+                totalTime = timeLeft;
+                updateDisplay();
             }
             
             // タイマーの一時停止
@@ -372,6 +396,7 @@
                 startBtn.disabled = false;
                 pauseBtn.disabled = true;
                 statusDisplay.textContent = '完了！';
+                progressBar.style.width = '100%';
                 
                 if (notificationToggle.checked) {
                     new Notification('ポモドーロタイマー', {
@@ -388,14 +413,18 @@
                         '休憩時間です！' : 
                         '作業時間です！';
                     
-                    new Notification('ポモドーロタイマー', {
-                        body: message,
-                        icon: 'https://via.placeholder.com/128'
-                    });
+                    try {
+                        new Notification('ポモドーロタイマー', {
+                            body: message,
+                            icon: 'https://via.placeholder.com/128'
+                        });
+                    } catch (error) {
+                        console.log('通知エラー:', error);
+                    }
                 }
             }
             
-            // メモリ内プリセットを管理（localStorage の代わり）
+            // メモリ内プリセットを管理
             let memoryPresets = {};
             
             // プリセットの保存
@@ -411,11 +440,6 @@
                 
                 presetNameInput.value = '';
                 renderPresets();
-            }
-            
-            // プリセットの取得
-            function getPresets() {
-                return memoryPresets;
             }
             
             // プリセットの読み込み
@@ -438,11 +462,10 @@
             
             // プリセットのレンダリング
             function renderPresets() {
-                const presets = getPresets();
                 presetList.innerHTML = '';
                 
-                for (const name in presets) {
-                    const preset = presets[name];
+                for (const name in memoryPresets) {
+                    const preset = memoryPresets[name];
                     const presetItem = document.createElement('div');
                     presetItem.className = 'preset-item';
                     
@@ -456,11 +479,17 @@
                     
                     const loadBtn = document.createElement('button');
                     loadBtn.textContent = '読込';
-                    loadBtn.addEventListener('click', () => loadPreset(name));
+                    loadBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        loadPreset(name);
+                    });
                     
                     const deleteBtn = document.createElement('button');
                     deleteBtn.textContent = '削除';
-                    deleteBtn.addEventListener('click', () => deletePreset(name));
+                    deleteBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        deletePreset(name);
+                    });
                     
                     presetItem.appendChild(nameSpan);
                     presetItem.appendChild(valuesSpan);
@@ -471,41 +500,90 @@
                 }
             }
             
-            // タッチデバイス対応のイベントリスナー
-            function addEventListeners(element, eventTypes, callback) {
-                eventTypes.forEach(type => {
-                    element.addEventListener(type, callback);
-                });
-            }
+            // イベントリスナーの設定（iPhoneのChrome対応）
+            // タッチデバイス判定
+            let isTouch = false;
             
-            // イベントリスナーの設定
-            addEventListeners(startBtn, ['click', 'touchstart'], function(e) {
-                e.preventDefault(); // デフォルトの動作を防止
+            // スタートボタン
+            startBtn.addEventListener('touchstart', function(e) {
+                isTouch = true;
+                e.preventDefault();
                 startTimer();
+            }, { passive: false });
+            
+            startBtn.addEventListener('click', function(e) {
+                if (!isTouch) {
+                    e.preventDefault();
+                    startTimer();
+                }
+                isTouch = false;
             });
             
-            addEventListeners(pauseBtn, ['click', 'touchstart'], function(e) {
+            // 一時停止ボタン
+            pauseBtn.addEventListener('touchstart', function(e) {
+                isTouch = true;
                 e.preventDefault();
                 pauseTimer();
+            }, { passive: false });
+            
+            pauseBtn.addEventListener('click', function(e) {
+                if (!isTouch) {
+                    e.preventDefault();
+                    pauseTimer();
+                }
+                isTouch = false;
             });
             
-            addEventListeners(resetBtn, ['click', 'touchstart'], function(e) {
+            // リセットボタン
+            resetBtn.addEventListener('touchstart', function(e) {
+                isTouch = true;
                 e.preventDefault();
                 resetTimer();
+            }, { passive: false });
+            
+            resetBtn.addEventListener('click', function(e) {
+                if (!isTouch) {
+                    e.preventDefault();
+                    resetTimer();
+                }
+                isTouch = false;
             });
             
-            addEventListeners(savePresetBtn, ['click', 'touchstart'], function(e) {
+            // プリセット保存ボタン
+            savePresetBtn.addEventListener('touchstart', function(e) {
+                isTouch = true;
                 e.preventDefault();
                 savePreset();
+            }, { passive: false });
+            
+            savePresetBtn.addEventListener('click', function(e) {
+                if (!isTouch) {
+                    e.preventDefault();
+                    savePreset();
+                }
+                isTouch = false;
             });
             
+            // プリセットボタン
             presetButtons.forEach(button => {
-                addEventListeners(button, ['click', 'touchstart'], function(e) {
+                button.addEventListener('touchstart', function(e) {
+                    isTouch = true;
                     e.preventDefault();
                     workTimeInput.value = this.dataset.work;
                     breakTimeInput.value = this.dataset.break;
                     cyclesInput.value = this.dataset.cycles;
                     resetTimer();
+                }, { passive: false });
+                
+                button.addEventListener('click', function(e) {
+                    if (!isTouch) {
+                        e.preventDefault();
+                        workTimeInput.value = this.dataset.work;
+                        breakTimeInput.value = this.dataset.break;
+                        cyclesInput.value = this.dataset.cycles;
+                        resetTimer();
+                    }
+                    isTouch = false;
                 });
             });
             
