@@ -256,10 +256,47 @@
         .preset-item button:first-of-type {
             background-color: #007aff;
         }
+        .notification-status {
+            font-size: 0.9rem;
+            margin-top: 5px;
+            padding: 5px;
+            border-radius: 5px;
+            color: #666;
+        }
+        .notification-status.granted {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        .notification-status.denied {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .notification-status.default {
+            background-color: #fff8e1;
+            color: #f57f17;
+        }
+        /* アラート表示用のスタイル */
+        .alert {
+            background-color: rgba(255, 0, 0, 0.1);
+            border-left: 4px solid #ff3b30;
+            color: #333;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        /* オーディオ通知用の設定 */
+        .audio-toggle {
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
     <h1>ポモドーロタイマー</h1>
+    
+    <div id="notification-alert" class="alert">
+        通知の設定が許可されていません。通知を受け取るには、ブラウザの設定で許可してください。
+    </div>
     
     <div class="container work-mode" id="timer-container">
         <div class="timer-display" id="timer">25:00</div>
@@ -301,6 +338,13 @@
                 <input type="checkbox" id="notification-toggle" checked>
                 通知を有効にする
             </label>
+            <div id="notification-status" class="notification-status default">通知の状態: 未設定</div>
+        </div>
+        <div class="form-group audio-toggle">
+            <label>
+                <input type="checkbox" id="audio-toggle" checked>
+                音声通知を有効にする（通知が表示されない場合）
+            </label>
         </div>
         <div class="save-preset">
             <input type="text" id="preset-name" placeholder="プリセット名">
@@ -310,6 +354,17 @@
             <!-- プリセットがここに表示されます -->
         </div>
     </div>
+
+    <!-- 音声通知用のオーディオ要素 -->
+    <audio id="work-audio" preload="auto">
+        <source src="data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaGAIGUQBhIGEAYahoKHGxsbGAAAAAAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAABAAADQgD///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8AAAA5TEFNRTMuMTAwAc0AAAAAAAAAABSAJAJAQgAAgAAAA0L2YLwxAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//tAxAAAByiLKGdGAAD9IbcZ4wgAIExXQMdmQiQ8P+0HP3b7Ktra87HxqwoQgTuHQgHAVDC5hcf/ADJjL//i8O4n//i4Pb//xcFweH//8IA//+DLcV///isIfxQPlAeHQkO1vIRVbzUkAFAyOEjxaxqJIJFHdD7Q0Og5EdD6XRaZIwTg5QEHo9/RaaJlrUIRfBsZCrUnX8b4WNsFhoJ0i6wqcx8bYdJNb/////61VVVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV" type="audio/mpeg">
+    </audio>
+    <audio id="break-audio" preload="auto">
+        <source src="data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaGAIGUQBhIGEAYahoKHGxsbGAAAAAAAAAAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAABAAADQgD///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8AAAA5TEFNRTMuMTAwAc0AAAAAAAAAABSAJAJAQgAAgAAAA0L2YLwxAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//tAxAAABzCHI01kAADwFGUJvDAActfcE2y9QyDgvLnO/uHNuL6+8OZe3//e9znf//+9zl7f//5e3O////znLg/+CUPg+D55cHwf9Dg+U7vg+OkQCDpiXHIUDmVW8sXOZIWKSZHJdmMQMkRyQHdDsUJ0DJaTRYU/DsUJ5QjuH4b5jWsAiFQBVrRsCoAEiVbBWQSOKBo4aKFAVYaPfR21v//zf////+mqqpMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV" type="audio/mpeg">
+    </audio>
+    <audio id="complete-audio" preload="auto">
+        <source src="data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaGAIGUQBhIGEAYahoKHGxsbGAAAAAAAAAAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAABAAADQgD///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8AAAA5TEFNRTMuMTAwAc0AAAAAAAAAABSAJAJAQgAAgAAAA0L2YLwxAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//tAxAAABxCHI09gAAEEEWRp7wAASOMvUO49ZsctIqKi5i5CHoQ6BUKhDo5cGhQyFQqNDpw50IdCGQ5Z0ePlJ4TuEPw6FUHQpxcXB0KmQ58OYx0CpVKpwpPCnB0+HTnQp9yDly5aHPlJ4Q/DoGQ6BODmQ6AUBoEAlCoBAODmOcCnECnDoVDsUMdCoGSJw6BOFUYdKhw6Q6AUPnCqjXKpvf////60qSSYgpqZWqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq" type="audio/mpeg">
+    </audio>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -329,11 +384,20 @@
             const breakTimeInput = document.getElementById('break-time');
             const cyclesInput = document.getElementById('cycles');
             const notificationToggle = document.getElementById('notification-toggle');
+            const audioToggle = document.getElementById('audio-toggle');
             
             const presetButtons = document.querySelectorAll('.preset-btn');
             const savePresetBtn = document.getElementById('save-preset-btn');
             const presetNameInput = document.getElementById('preset-name');
             const presetList = document.getElementById('preset-list');
+            
+            const notificationStatus = document.getElementById('notification-status');
+            const notificationAlert = document.getElementById('notification-alert');
+            
+            // 音声要素の取得
+            const workAudio = document.getElementById('work-audio');
+            const breakAudio = document.getElementById('break-audio');
+            const completeAudio = document.getElementById('complete-audio');
             
             // タイマー変数
             let timer;
@@ -350,10 +414,73 @@
             const isChrome = /Chrome/.test(navigator.userAgent);
             const isChromeIOS = isIOS && isChrome;
             
-            // 通知許可の確認
-            if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-                Notification.requestPermission();
+            // 通知の状態を更新
+            function updateNotificationStatus() {
+                if (!('Notification' in window)) {
+                    notificationStatus.textContent = '通知: このブラウザでは対応していません';
+                    notificationStatus.className = 'notification-status denied';
+                    notificationAlert.style.display = 'block';
+                    return;
+                }
+                
+                switch (Notification.permission) {
+                    case 'granted':
+                        notificationStatus.textContent = '通知: 許可済み';
+                        notificationStatus.className = 'notification-status granted';
+                        notificationAlert.style.display = 'none';
+                        break;
+                    case 'denied':
+                        notificationStatus.textContent = '通知: ブロックされています';
+                        notificationStatus.className = 'notification-status denied';
+                        notificationAlert.style.display = 'block';
+                        break;
+                    default:
+                        notificationStatus.textContent = '通知: 許可が必要です';
+                        notificationStatus.className = 'notification-status default';
+                        notificationAlert.style.display = 'block';
+                }
             }
+            
+            // 通知許可の確認と要求
+            function requestNotificationPermission() {
+                if (!('Notification' in window)) {
+                    console.log('このブラウザはプッシュ通知に対応していません');
+                    return;
+                }
+                
+                if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                    Notification.requestPermission().then(function(permission) {
+                        updateNotificationStatus();
+                        // iOSでは特にユーザーアクションが必要なため、ここで直接ボタンに関連付け
+                        if (isIOS) {
+                            if (permission === 'granted') {
+                                // サンプル通知で確認
+                                try {
+                                    new Notification('ポモドーロタイマー', {
+                                        body: '通知が有効になりました。',
+                                        icon: '/api/placeholder/128/128'
+                                    });
+                                } catch (e) {
+                                    console.log('通知エラー:', e);
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    updateNotificationStatus();
+                }
+            }
+            
+            // 通知チェックボックスがクリックされたときの処理
+            notificationToggle.addEventListener('change', function() {
+                if (this.checked && Notification.permission !== 'granted') {
+                    requestNotificationPermission();
+                }
+                updateNotificationStatus();
+            });
+            
+            // 初期状態での通知状態の更新
+            updateNotificationStatus();
             
             // タイマーの初期化
             function initializeTimer() {
@@ -380,7 +507,7 @@
                 timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
                 statusDisplay.textContent = isWorkTime ? '作業時間' : '休憩時間';
                 
-                // UI テーマの切り替え
+                // UIテーマの切り替え
                 if (isWorkTime) {
                     timerContainer.className = 'container work-mode';
                 } else {
@@ -391,6 +518,9 @@
                 if (totalTime > 0) {
                     progressBar.style.width = `${((totalTime - timeLeft) / totalTime) * 100}%`;
                 }
+                
+                // タイトルの更新（ブラウザタブに表示）
+                document.title = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} - ポモドーロタイマー`;
             }
             
             // タイマーの開始
@@ -405,6 +535,11 @@
                 isPaused = false;
                 startBtn.disabled = true;
                 pauseBtn.disabled = false;
+                
+                // 通知許可が必要かつまだ確認されていない場合は確認する
+                if (notificationToggle.checked && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                    requestNotificationPermission();
+                }
                 
                 runTimer();
             }
@@ -424,7 +559,7 @@
             
             // タイマー終了時の処理
             function handleTimerEnd() {
-                // 通知の送信
+                // 通知と音声の送信
                 if (notificationToggle.checked) {
                     sendNotification();
                 }
@@ -464,6 +599,11 @@
                 if (notificationToggle.checked) {
                     sendPhaseChangeNotification('休憩時間が始まりました！');
                 }
+                
+                // 音声通知
+                if (audioToggle.checked) {
+                    playAudio(breakAudio);
+                }
             }
             
             // 作業時間への切り替え
@@ -476,6 +616,11 @@
                 // 通知の送信（フェーズ切り替え時）
                 if (notificationToggle.checked) {
                     sendPhaseChangeNotification('作業時間が始まりました！');
+                }
+                
+                // 音声通知
+                if (audioToggle.checked) {
+                    playAudio(workAudio);
                 }
             }
             
@@ -507,202 +652,23 @@
                 statusDisplay.textContent = '完了！';
                 progressBar.style.width = '100%';
                 
-                if (notificationToggle.checked && 'Notification' in window) {
-                    try {
-                        new Notification('ポモドーロタイマー', {
-                            body: 'すべてのサイクルが完了しました！',
-                            icon: '/api/placeholder/128/128'
-                        });
-                    } catch (error) {
-                        console.log('通知エラー:', error);
-                    }
+                // 通知の送信
+                if (notificationToggle.checked) {
+                    sendCompletionNotification();
                 }
-            }
-            
-            // 通知の送信
-            function sendNotification() {
-                if ('Notification' in window && Notification.permission === 'granted') {
-                    const message = isWorkTime ? 
-                        '休憩時間です！' : 
-                        '作業時間です！';
-                    
-                    try {
-                        new Notification('ポモドーロタイマー', {
-                            body: message,
-                            icon: '/api/placeholder/128/128'
-                        });
-                    } catch (error) {
-                        console.log('通知エラー:', error);
-                    }
-                }
-            }
-            
-            // フェーズ切り替え時の通知
-            function sendPhaseChangeNotification(message) {
-                if ('Notification' in window && Notification.permission === 'granted') {
-                    try {
-                        new Notification('ポモドーロタイマー', {
-                            body: message,
-                            icon: '/api/placeholder/128/128'
-                        });
-                    } catch (error) {
-                        console.log('通知エラー:', error);
-                    }
-                }
-            }
-            
-            // メモリ内プリセットを管理
-            let memoryPresets = {};
-            
-            // プリセットの保存
-            function savePreset() {
-                const name = presetNameInput.value.trim();
-                if (!name) return;
                 
-                const workTime = parseInt(workTimeInput.value) || 25;
-                const breakTime = parseInt(breakTimeInput.value) || 5;
-                const cycles = parseInt(cyclesInput.value) || 4;
-                
-                memoryPresets[name] = { workTime, breakTime, cycles };
-                
-                presetNameInput.value = '';
-                renderPresets();
-            }
-            
-            // プリセットの読み込み
-            function loadPreset(name) {
-                const preset = memoryPresets[name];
-                
-                if (preset) {
-                    workTimeInput.value = preset.workTime;
-                    breakTimeInput.value = preset.breakTime;
-                    cyclesInput.value = preset.cycles;
-                    resetTimer();
+                // 音声通知
+                if (audioToggle.checked) {
+                    playAudio(completeAudio);
                 }
             }
             
-            // プリセットの削除
-            function deletePreset(name) {
-                delete memoryPresets[name];
-                renderPresets();
-            }
-            
-            // プリセットのレンダリング
-            function renderPresets() {
-                presetList.innerHTML = '';
-                
-                for (const name in memoryPresets) {
-                    const preset = memoryPresets[name];
-                    const presetItem = document.createElement('div');
-                    presetItem.className = 'preset-item';
+            // 音声を再生
+            function playAudio(audioElement) {
+                try {
+                    // iOSのChromeでは、ユーザージェスチャー後でないとオーディオが再生できない
+                    // ここでは強制的に再生を試みる
+                    const playPromise = audioElement.play();
                     
-                    const nameSpan = document.createElement('span');
-                    nameSpan.className = 'preset-item-name';
-                    nameSpan.textContent = name;
-                    
-                    const valuesSpan = document.createElement('span');
-                    valuesSpan.className = 'preset-item-values';
-                    valuesSpan.textContent = `${preset.workTime}分-${preset.breakTime}分 x${preset.cycles}`;
-                    
-                    const loadBtn = document.createElement('button');
-                    loadBtn.textContent = '読込';
-                    addTouchHandler(loadBtn, () => loadPreset(name));
-                    
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.textContent = '削除';
-                    addTouchHandler(deleteBtn, () => deletePreset(name));
-                    
-                    presetItem.appendChild(nameSpan);
-                    presetItem.appendChild(valuesSpan);
-                    presetItem.appendChild(loadBtn);
-                    presetItem.appendChild(deleteBtn);
-                    
-                    presetList.appendChild(presetItem);
-                }
-            }
-            
-            // iOSサポートを改善したイベントハンドラー
-            function addTouchHandler(element, callback) {
-                // Chrome for iOSの特別対応
-                if (isChromeIOS) {
-                    // touchstartとtouchendで確実に処理
-                    let touchStarted = false;
-                    
-                    element.addEventListener('touchstart', function(e) {
-                        touchStarted = true;
-                        e.preventDefault();
-                    }, { passive: false });
-                    
-                    element.addEventListener('touchend', function(e) {
-                        if (touchStarted) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            // 小さな遅延を入れて確実に実行
-                            setTimeout(() => callback(e), 10);
-                        }
-                        touchStarted = false;
-                    }, { passive: false });
-                    
-                    // クリックイベントも念のため追加（ただし重複実行を防ぐ）
-                    element.addEventListener('click', function(e) {
-                        if (!touchStarted) {
-                            e.preventDefault();
-                            callback(e);
-                        }
-                    });
-                } else {
-                    // 通常のイベント処理
-                    element.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        callback(e);
-                    });
-                    
-                    // タッチデバイス用の追加処理
-                    if ('ontouchstart' in window) {
-                        let touchStarted = false;
-                        let touchMoved = false;
-                        
-                        element.addEventListener('touchstart', function(e) {
-                            touchStarted = true;
-                            touchMoved = false;
-                        }, { passive: true });
-                        
-                        element.addEventListener('touchmove', function(e) {
-                            touchMoved = true;
-                        }, { passive: true });
-                        
-                        element.addEventListener('touchend', function(e) {
-                            if (touchStarted && !touchMoved) {
-                                e.preventDefault();
-                                callback(e);
-                            }
-                            touchStarted = false;
-                            touchMoved = false;
-                        }, { passive: false });
-                    }
-                }
-            }
-            
-            // イベントリスナーの設定
-            addTouchHandler(startBtn, startTimer);
-            addTouchHandler(pauseBtn, pauseTimer);
-            addTouchHandler(resetBtn, resetTimer);
-            addTouchHandler(savePresetBtn, savePreset);
-            
-            // プリセットボタン
-            presetButtons.forEach(button => {
-                addTouchHandler(button, function() {
-                    workTimeInput.value = button.dataset.work;
-                    breakTimeInput.value = button.dataset.break;
-                    cyclesInput.value = button.dataset.cycles;
-                    resetTimer();
-                });
-            });
-            
-            // アプリ初期化
-            initializeTimer();
-            renderPresets();
-        });
-    </script>
-</body>
-</html>
+                    if (playPromise !== undefined) {
+                        playPromise.catch(
